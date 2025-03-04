@@ -90,7 +90,7 @@ def update_pheromone_matrix():
     """
     global PHEROMONE_MATRIX
     new_pheromone_matrix = np.zeros_like(PHEROMONE_MATRIX)
-    for drone_id, (row, col) in DRONE_POSITIONS_IN_GRID:
+    for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
         new_pheromone_matrix[row, col] = 1024
 
     for i in range(1, GRID_SIZE + 1):
@@ -271,7 +271,7 @@ class CrazyflieSupervisor(Supervisor):
         for i in range(GRID_SIZE + 1):
             for j in range(GRID_SIZE + 1):
                 db.log_priority_matrix(col=i, row=j, priority=PRIORITY_MATRIX[i][j], timestep=self.t)
-                db.log_pheromone_matrix(col=i, row=j, priority=PHEROMONE_MATRIX[i][j], timestep=self.t)
+                db.log_pheromone_matrix(col=i, row=j, pheromone=PHEROMONE_MATRIX[i][j], timestep=self.t)
 
     def save_drone_positions(self):
         for i, (x, y) in enumerate(DRONE_POSITIONS):
