@@ -11,21 +11,25 @@ import numpy as np
 import json
 from controllers.common.grid import *
 # Initialize the Supervisor
+from controllers.common.db_handler import DatabaseHandler
 
+# Initialize Database (Session starts in constructor)
+db = DatabaseHandler()
 # Global parameters
 PHEROMONE_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
 PRIORITY_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
-N=3#drone count
+N=1#drone count
+DELAY=1000
 DRONE_POSITIONS_IN_GRID = np.zeros((N, 2), dtype=int)
 DRONE_POSITIONS=np.zeros((N, 2), dtype=float)
 # To track previous drone positions
 # Enable the keyboard interface
 
 
-MAX_T=1000
-PHEROMONE_HISTORY=np.zeros((MAX_T, GRID_SIZE+2, GRID_SIZE+2), dtype=float)
-PRIORITY_HISTORY=np.zeros((MAX_T, GRID_SIZE+2, GRID_SIZE+2), dtype=float)
-DRONE_HISTORY=np.zeros((MAX_T, N, 4), dtype=float)
+# MAX_T=1000
+# PHEROMONE_HISTORY=np.zeros((MAX_T, GRID_SIZE+2, GRID_SIZE+2), dtype=float)
+# PRIORITY_HISTORY=np.zeros((MAX_T, GRID_SIZE+2, GRID_SIZE+2), dtype=float)
+# DRONE_HISTORY=np.zeros((MAX_T, N, 4), dtype=float)
 
 
 def regular_polygon_vertices_from_inscribed(N=N, r=1):
@@ -39,9 +43,9 @@ def regular_polygon_vertices_from_inscribed(N=N, r=1):
     if N<=0:
         raise ValueError("N must be greater than 0")
     elif N==1:
-        return [(0.0, 0.0)]
+        return [(0.0, 0.0, 0.0)]
     elif N==2:
-        return [(0.0, r), (0.0, -r)]
+        return [(0.0, r, np.pi/2), (0.0, -r, -np.pi/2)]
 
     R = r / np.cos(np.pi / N)  # Радиус описанной окружности
     vertices = []
@@ -65,32 +69,29 @@ def detect_drones():
         node = children_field.getMFNode(i)
         if node.getTypeName() == "Crazyflie":  # Filter by node type
             # Access the 'id' field of the Crazyflie node
+
             id_field = node.getField("id")
             drone_id = int(id_field.getSFInt32())  # Assuming 'id' is SFInt32
 
-            position = node.getPosition()
-            if position[2] > 0.1:  # Ensure the drone is not "fallen" (height > 0.1)
-                drones.append((drone_id, position))
+            x, y, z = node.getPosition()
+            if z < 0.1:  # Ensure the drone is not "fallen" (height > 0.1)
+                continue
+            DRONE_POSITIONS[drone_id, :] = [x, y]
+            row, col = find_grid_coordinates(x, y)
+            DRONE_POSITIONS_IN_GRID[drone_id, :] = [row, col]
+            drones.append((drone_id, [x, y, z]))
     return drones
 
 
-def update_pheromone_matrix(drones, floor_width, floor_depth):
+def update_pheromone_matrix():
     """
     Update the pheromone matrix based on the drone positions and old pheromone values.
     All drones that are not fallen affect the pheromones, regardless of movement.
     """
     global PHEROMONE_MATRIX
     new_pheromone_matrix = np.zeros_like(PHEROMONE_MATRIX)
-    global DRONE_POSITIONS_IN_GRID
-    for drone_id, position in drones:
-        x, y, z = position
-        if z < 0.1:  # Skip fallen drones (height less than 0.1)
-            continue
-        DRONE_POSITIONS[drone_id, :] = [x, y]
-        row, col = find_grid_coordinates(x, y)
-        if row is not None and col is not None:
-            new_pheromone_matrix[row, col] = 1024
-            DRONE_POSITIONS_IN_GRID[drone_id,:] = [row, col]
+    for drone_id, (row, col) in DRONE_POSITIONS_IN_GRID:
+        new_pheromone_matrix[row, col] = 1024
 
     for i in range(1, GRID_SIZE + 1):
         for j in range(1, GRID_SIZE + 1):
@@ -103,11 +104,7 @@ def update_pheromone_matrix(drones, floor_width, floor_depth):
     PHEROMONE_MATRIX = (PHEROMONE_MATRIX  + new_pheromone_matrix)/2
     PHEROMONE_MATRIX = np.clip(PHEROMONE_MATRIX, 0, 1024)
 
-def update_history(t:int):
-    PHEROMONE_HISTORY[t, :, :] = PHEROMONE_MATRIX
-    PRIORITY_HISTORY[t, :, :] = PRIORITY_MATRIX
-    DRONE_HISTORY[t, :, :2] = DRONE_POSITIONS
-    DRONE_HISTORY[t, :, 2:] = DRONE_POSITIONS_IN_GRID
+
 def update_priority_matrix():
     """
     Update the priority matrix based on the pheromone matrix.
@@ -145,17 +142,7 @@ def prepare_drone_info(drones):
 
     return msg
 
-def prepare_msg(command: str, content = None):
-    msg=dict()
-    global MESSAGE_ID
-    msg['MESSAGE_ID'] = MESSAGE_ID
-    MESSAGE_ID+=1
-    msg['COMMAND'] = command
-    if content:
-        msg['CONTENT'] = content
-    json_message = json.dumps(msg, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
-    # print('message:', json_message)
-    return json_message.encode()
+
 
 def get_floor_size(def_name):
     """
@@ -265,14 +252,6 @@ def delete_grid():
     print("Grid visualization removed!")
 
 
-def check_if_found(pos, epsilon=0.001):
-    for drone_id, [x, y] in enumerate(DRONE_POSITIONS):
-        if abs(pos[0] - x) + abs(pos[1] - y) < epsilon:
-            print(f'Drone: {drone_id} found object')
-            return True
-    return False
-
-
 from controller import Supervisor
 
 
@@ -282,9 +261,39 @@ class CrazyflieSupervisor(Supervisor):
         self.drones = []  # List to store drone instances
         self.is_running = False
         self.is_paused = False
+        self.message_id=0
 
         # Initialize drones
         self.create_drones()
+
+    def update_history(self):
+
+        for i in range(GRID_SIZE + 1):
+            for j in range(GRID_SIZE + 1):
+                db.log_priority_matrix(col=i, row=j, priority=PRIORITY_MATRIX[i][j], timestep=self.t)
+                db.log_pheromone_matrix(col=i, row=j, priority=PHEROMONE_MATRIX[i][j], timestep=self.t)
+
+    def save_drone_positions(self):
+        for i, (x, y) in enumerate(DRONE_POSITIONS):
+            db.log_drone_pos(drone_id=i, position_x=x, position_y=y, timestep=self.t)
+        for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
+            db.log_drone_cell_position(drone_id=drone_id, row=row, col=col, timestep=self.t)
+
+    def send_msg(self, command: str, content=None):
+        msg = dict()
+        # global MESSAGE_ID
+        msg['MESSAGE_ID'] = self.message_id
+        self.message_id += 1
+        msg['COMMAND'] = command
+        if content:
+            msg['CONTENT'] = content
+        json_message = json.dumps(msg, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+        # print('message:', json_message)
+        # return json_message.encode()
+        full_text=json_message.encode()
+        self.emitter.send(full_text)
+        # db.log_msg_sent(timestep=self.t, command=command, content=content, id=MESSAGE_ID, full_text=full_text)
+
 
     def create_drones(self):
         """Create Crazyflie drones at different positions."""
@@ -318,17 +327,14 @@ class CrazyflieSupervisor(Supervisor):
         """Pause the drones' controllers but keep them alive."""
         self.is_paused = True
         print(f'{self.getTime()}: Paused')
-        self.emitter.send(prepare_msg('pause'))
+        # self.emitter.send(prepare_msg('pause'))
+        self.send_msg('pause')
             # drone_controller_field = drone.getField("controller")
             # drone_controller_field.setSFString("")  # Disable controller temporarily
     def send_go_up(self):
         """Send the go up command."""
-        self.emitter.send(prepare_msg('up', 1))
-    def execute_function(self):
-        """Execute the specific function when 'F' is pressed."""
-        print("Executing function F...")
-        np.savez_compressed("arrays_compressed.npz", first=PHEROMONE_MATRIX, second=PRIORITY_MATRIX,
-                            third=DRONE_HISTORY)
+        # self.emitter.send(prepare_msg('up', 1))
+        self.send_msg('up', 1)
 
         # Add the function behavior here
 
@@ -345,8 +351,8 @@ class CrazyflieSupervisor(Supervisor):
         elif key == ord('P'):  # 'P' key pauses the simulation
             if not self.is_paused:
                 self.pause_simulation()
-        elif key == ord('F'):  # 'F' key executes the function
-            self.execute_function()
+        elif key == ord('Q'):  # 'F' key executes the function
+            self.quit=True
         elif key == ord('U'):
             self.send_go_up()
         elif key == ord('G'):
@@ -367,35 +373,44 @@ class CrazyflieSupervisor(Supervisor):
 
         self.floor_width, self.floor_depth = floor_size
         self.emitter = self.getDevice("emitter")
-        t = 0
-        pos = [random.uniform(-self.floor_width, self.floor_width), random.uniform(-self.floor_depth, self.floor_depth)]
+        self.t = 0
+        # pos = [random.uniform(-self.floor_width, self.floor_width), random.uniform(-self.floor_depth, self.floor_depth)]
         self.keyboard.enable(int(self.getBasicTimeStep()))
         delay=0
-        while self.step(int(self.getBasicTimeStep())) != -1 and t<MAX_T and not check_if_found(pos):
+        # Supervisor creates an episode
+        db.create_episode(drone_count=N)
+        self.timestep=int(self.getBasicTimeStep())
+        self.quit=False
+        while self.step(int(self.getBasicTimeStep())) != -1 and not self.quit:
+            self.t=self.t+1
             self.process_key_press()
             delay += self.getBasicTimeStep()
+            drones = detect_drones()
+            self.save_drone_positions()
             if self.is_running and not self.is_paused and delay>1000:
                 # Supervisor's main loop for controlling simulation if needed
                  # Add your own logic here
                 # Detect drones and their positions
-                drones = detect_drones()
+
 
                 # Update pheromone and priority matrices
-                update_pheromone_matrix(drones, self.floor_width, self.floor_depth)
+                update_pheromone_matrix()
                 update_priority_matrix()
                 msg = prepare_drone_info(drones)
-                self.emitter.send(prepare_msg('go', msg))
-                update_history(t)
-                t = t + 1
+                # self.emitter.send(prepare_msg('go', msg))
+                self.send_msg('go', msg)
+                self.update_history()
+
                 delay = 0
 
 
-        np.savez_compressed("arrays_compressed.npz", first=PHEROMONE_MATRIX, second=PRIORITY_MATRIX,
-                            third=DRONE_HISTORY)
+        # np.savez_compressed("arrays_compressed.npz", first=PHEROMONE_MATRIX, second=PRIORITY_MATRIX,
+        #                     third=DRONE_HISTORY)
 
 if __name__ == '__main__':
     # Create the supervisor and run the simulation
     supervisor = CrazyflieSupervisor()
     supervisor.run()
+    db.close()
 
 

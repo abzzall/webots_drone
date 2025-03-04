@@ -29,6 +29,10 @@ from controller import Keyboard
 from controllers.common.grid import *
 from controllers.common.pid_controller import pid_velocity_fixed_height_controller
 import json
+from controllers.common.db_handler import DatabaseHandler
+
+# Initialize Database (Session starts in constructor)
+db = DatabaseHandler()
 FLYING_ATTITUDE = 1
 V_MAX=1
 dV=0.1
@@ -89,9 +93,11 @@ def Fa(directions: dict, x, y,  v_x, v_y, gridBorders):
 
     return np.array([S_x, S_y])
 
-def V(Fa, v_x, v_y, dV_max=dV):
-    Fa_len=vector_length(Fa[0], Fa[1])
-    dv=Fa*dV_max/Fa_len
+def calc_dv(Fa, dV_max=dV):
+    return Fa*dV_max/vector_length(Fa[0], Fa[1])
+
+def V(v_x, v_y, dv):
+
     new_v_x=dv[0]+v_x
     new_v_y=dv[1]+v_y
     magnitude = np.sqrt(new_v_x ** 2 + new_v_y ** 2)
@@ -110,8 +116,10 @@ def globalSpeedToLocal(v_x_global, v_y_global, yaw):
     return np.array([v_x, v_y])
 
 if __name__ == '__main__':
-
+    t=0
     robot = Robot()
+    # Retrieve the current episode ID
+    db.current_episode_id = db.get_latest_episode_id()
     timestep = int(robot.getBasicTimeStep())
     print('drone controller started')
     # Initialize motors
@@ -267,7 +275,11 @@ if __name__ == '__main__':
                 row, column = find_grid_coordinates(x_global, y_global)
                 gridBorders=grid_borders(row, column)
                 fa=Fa(directions=new_info, v_x=v_x_global, v_y=v_y_global, x=x_global, y=y_global, gridBorders=gridBorders)
-                calculated_v=V(Fa=fa, v_x= v_x_global,v_y= v_y_global)
+
+                dv=calc_dv(fa)
+
+                calculated_v=V(v_x= v_x_global,v_y= v_y_global, dv=dv)
+
                 v=globalSpeedToLocal(calculated_v[0], calculated_v[1], yaw)
                 # height_desired=altitude
                 print(f'new velocity: {v}')
@@ -288,14 +300,24 @@ if __name__ == '__main__':
         # if you choose direction left, use the right range value
         # if you choose direction right, use the left range value
         range_side_value = range_right_value
+        db.log_drone_observed_state(timestep=t, drone_id=id, roll=roll, pitch=pitch, yaw=yaw, yaw_rate=yaw_rate,
+                                    x_global=x_global, y_global=y_global, v_x_global=v_x_global, v_y_global=v_y_global,
+                                    altitude=altitude, v_x=v_x, v_y=v_y, dt=dt)
 
-
+        db.log_drone_desired_state(timestep=t, drone_id=id, desired_vx=v[0], desired_vy=v[1],
+                                   desired_yaw_rate=yaw_desired, desired_altitude=height_desired)
         # PID velocity controller with fixed height
         motor_power = PID_crazyflie.pid(dt, v[0], v[1],
                                         yaw_desired, height_desired,
                                         roll, pitch, yaw_rate,
                                         altitude, v_x, v_y)
-
+        # motor1_speed = Column(Float, nullable=False)
+        # motor2_speed = Column(Float, nullable=False)
+        # motor3_speed = Column(Float, nullable=False)
+        # motor4_speed = Column(Float, nullable=False)
+        db.log_drone_motor_power(timestep=t, drone_id=id,
+                                 motor1_speed=motor_power[0], motor2_speed=motor_power[1],
+                                 motor3_speed=motor_power[2], motor4_speed=motor_power[3],)
         m1_motor.setVelocity(-motor_power[0])
         m2_motor.setVelocity(motor_power[1])
         m3_motor.setVelocity(-motor_power[2])
@@ -304,8 +326,10 @@ if __name__ == '__main__':
         past_time = robot.getTime()
         past_x_global = x_global
         past_y_global = y_global
-        # print(f'GPS position: {[x_global, y_global]}')
 
+        t=t+1
+        # print(f'GPS position: {[x_global, y_global]}')
+db.close()
 #encrypting_key === private
 # signature
 
