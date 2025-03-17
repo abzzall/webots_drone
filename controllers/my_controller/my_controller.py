@@ -18,7 +18,7 @@ db = DatabaseHandler()
 # Global parameters
 PHEROMONE_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
 PRIORITY_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
-N=1#drone count
+N=3#drone count
 DELAY=1000
 DRONE_POSITIONS_IN_GRID = np.zeros((N, 2), dtype=int)
 DRONE_POSITIONS=np.zeros((N, 2), dtype=float)

@@ -5,9 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="saving logs to db">
-      <change afterPath="$PROJECT_DIR$/controllers/common/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/controllers/my_controller/arrays_compressed.npz" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/arrays_compressed.npz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/common/grid.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/grid.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/map/.map.wbproj" beforeDir="false" afterPath="$PROJECT_DIR$/map/.map.wbproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/map/map.osm" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,6 +109,12 @@
       <workItem from="1740976745804" duration="6489000" />
       <workItem from="1741026047257" duration="7715000" />
       <workItem from="1741070224110" duration="427000" />
+      <workItem from="1741795697290" duration="197000" />
+      <workItem from="1741843153941" duration="824000" />
+      <workItem from="1741844786779" duration="1904000" />
+      <workItem from="1741976514656" duration="265000" />
+      <workItem from="1742049511808" duration="639000" />
+      <workItem from="1742108203699" duration="1819000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />

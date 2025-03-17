@@ -8,3 +8,5 @@ orthographicViewHeight: 1
 textFiles: 0 "controllers/my_controller/my_controller.py"
 consoles: Console:All:All
 renderingDevicePerspectives: drone_0:camera;1;1;0;0
+renderingDevicePerspectives: drone_1:camera;1;1;0.351744;0.00290698
+renderingDevicePerspectives: drone_2:camera;1;1;0.762354;0.00436047

@@ -50,31 +50,31 @@ def angle_between_vectors(v1, v2):
 
 def get_target_vector(direction:str, x, y, gridBorders):
 
-    border_x1, border_y1, border_x2, border_y2=gridBorders
+    left_x, middle_x, right_x, bottom_y, middle_y, top_y=gridBorders
     if direction == 'left_bottom':
-        target_x=border_x1
-        target_y=border_y1
+        target_x=left_x
+        target_y=bottom_y
     elif direction == 'bottom':
-        target_x=(border_x1+border_x2)/2
-        target_y=border_y1
+        target_x=middle_x
+        target_y=bottom_y
     elif direction == 'right_bottom':
-        target_x=border_x2
-        target_y=border_y1
+        target_x=right_x
+        target_y=bottom_y
     elif direction == 'right':
-        target_x=border_x2
-        target_y=(border_y1 + border_y2)/2
+        target_x=right_x
+        target_y=middle_y
     elif direction == 'right_top':
-        target_x=border_x2
-        target_y=border_y2
+        target_x=right_x
+        target_y=top_y
     elif direction == 'top':
-        target_x=(border_x1+border_x2)/2
-        target_y=border_y2
+        target_x=middle_x
+        target_y=top_y
     elif direction == 'left_top':
-        target_x=border_x1
-        target_y=border_y2
+        target_x=left_x
+        target_y=top_y
     elif direction == 'left':
-        target_x=border_x1
-        target_y=(border_y1+border_y2)/2
+        target_x=left_x
+        target_y=middle_y
     return np.array( [target_x-x, target_y-y])
 
 def vector_length(x, y):
