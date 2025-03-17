@@ -1,13 +1,15 @@
 import sys
 import os
 
+import torch
+
 # Add the libraries directory to the Python path
 sys.path.append('../..')
 
 
 import random
 
-import numpy as np
+# import numpy as np
 import json
 from controllers.common.grid import *
 # Initialize the Supervisor
@@ -16,12 +18,12 @@ from controllers.common.db_handler import DatabaseHandler
 # Initialize Database (Session starts in constructor)
 db = DatabaseHandler()
 # Global parameters
-PHEROMONE_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
-PRIORITY_MATRIX = np.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=float)
+PHEROMONE_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
+PRIORITY_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 N=3#drone count
 DELAY=1000
-DRONE_POSITIONS_IN_GRID = np.zeros((N, 2), dtype=int)
-DRONE_POSITIONS=np.zeros((N, 2), dtype=float)
+DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.float64, device=device)
+DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
 # To track previous drone positions
 # Enable the keyboard interface
 
@@ -32,37 +34,44 @@ DRONE_POSITIONS=np.zeros((N, 2), dtype=float)
 # DRONE_HISTORY=np.zeros((MAX_T, N, 4), dtype=float)
 
 
-def regular_polygon_vertices_from_inscribed(N=N, r=1):
+def regular_polygon_vertices_from_inscribed(N, r=1):
     """
     Вычисляет координаты вершин правильного N-угольника, в который вписана окружность радиусом r.
 
     :param N: Количество сторон (углов)
     :param r: Радиус вписанной окружности
-    :return: Список кортежей (x, y) - координаты вершин
+    :param device: Устройство ('cpu' или 'cuda')
+    :return: Список кортежей (x, y, theta) - координаты вершин
     """
-    if N<=0:
+    if N <= 0:
         raise ValueError("N must be greater than 0")
-    elif N==1:
-        return [(0.0, 0.0, 0.0)]
-    elif N==2:
-        return [(0.0, r, np.pi/2), (0.0, -r, -np.pi/2)]
+    elif N == 1:
+        return torch.tensor([(0.0, 0.0, 0.0)], device=device)
+    elif N == 2:
+        return torch.tensor([(0.0, r, torch.pi / 2), (0.0, -r, -torch.pi / 2)], device=device)
 
-    R = r / np.cos(np.pi / N)  # Радиус описанной окружности
-    vertices = []
+    # Радиус описанной окружности
+    R = r / torch.cos(torch.pi / N)
 
-    for k in range(N):
-        theta = 2 * np.pi * k / N  # Угол в радианах
-        x = R * np.cos(theta)
-        y = R * np.sin(theta)
-         # Угол от центра до вершины
-        vertices.append((x, y, theta))
+    # Создаем тензор индексов для вершин от 0 до N-1
+    k_values = torch.arange(N, dtype=torch.float64, device=device)
+
+    # Вычисление углов (theta) для всех вершин
+    theta_values = 2 * torch.pi * k_values / N
+
+    # Вычисление x и y для всех вершин
+    x_values = R * torch.cos(theta_values)
+    y_values = R * torch.sin(theta_values)
+
+    # Собираем все в одном тензоре
+    vertices = torch.stack((x_values, y_values, theta_values), dim=1)
+
     return vertices
 
 def detect_drones():
     """
     Detect all Crazyflie drones and their positions.
     """
-    drones = []
     root = supervisor.getRoot()
     children_field = root.getField("children")
     for i in range(children_field.getCount()):
@@ -73,14 +82,9 @@ def detect_drones():
             id_field = node.getField("id")
             drone_id = int(id_field.getSFInt32())  # Assuming 'id' is SFInt32
 
-            x, y, z = node.getPosition()
-            if z < 0.1:  # Ensure the drone is not "fallen" (height > 0.1)
-                continue
-            DRONE_POSITIONS[drone_id, :] = [x, y]
-            row, col = find_grid_coordinates(x, y)
-            DRONE_POSITIONS_IN_GRID[drone_id, :] = [row, col]
-            drones.append((drone_id, [x, y, z]))
-    return drones
+            pos = torch.tensor(node.getPosition(), dtype=torch.float64, device=device)
+            DRONE_POSITIONS[drone_id, :] = pos
+            DRONE_POSITIONS_IN_GRID[drone_id, :] = find_grid_coordinates(pos)
 
 
 def update_pheromone_matrix():
@@ -89,20 +93,20 @@ def update_pheromone_matrix():
     All drones that are not fallen affect the pheromones, regardless of movement.
     """
     global PHEROMONE_MATRIX
-    new_pheromone_matrix = np.zeros_like(PHEROMONE_MATRIX)
-    for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
-        new_pheromone_matrix[row, col] = 1024
+    # Generate row and column indices with float64 precision
+    i_indices = torch.arange(N, dtype=torch.float64, device=device)  # Row indices
+    j_indices = torch.arange(N, dtype=torch.float64, device=device)  # Column indices
+    # Create a meshgrid of indices for rows and columns
+    i_grid, j_grid = torch.meshgrid(i_indices, j_indices)
 
-    for i in range(1, GRID_SIZE + 1):
-        for j in range(1, GRID_SIZE + 1):
-                for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
-                    dist_row, dist_col = abs(row - i), abs(col - j)
-                    new_pheromone_matrix[i, j]+=1024/(np.exp2( dist_row)+np.exp2( dist_col)+1)
+    new_pheromone_matrix = torch.zeros_like(PHEROMONE_MATRIX, dtype=torch.float64, device=device)
+    for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
+        new_pheromone_matrix[row, col]+= MAX_PHEROMONE / (1+torch.exp2(torch.abs(row - i_grid)) + torch.exp2(torch.abs(col - j_grid)))
 
 
     # Combine with old pheromone values
     PHEROMONE_MATRIX = (PHEROMONE_MATRIX  + new_pheromone_matrix)/2
-    PHEROMONE_MATRIX = np.clip(PHEROMONE_MATRIX, 0, 1024)
+    PHEROMONE_MATRIX = torch.clip(PHEROMONE_MATRIX, 0, 1024)
 
 
 def update_priority_matrix():
@@ -111,33 +115,33 @@ def update_priority_matrix():
     """
     global PRIORITY_MATRIX
     epsilon = 1e-30  # Small value to avoid log issues
-    PRIORITY_MATRIX = 1 - 1 / (11 - np.log2(PHEROMONE_MATRIX + epsilon))
+    PRIORITY_MATRIX = 1 - 1 / (101 - torch.log2(PHEROMONE_MATRIX + epsilon))
 
 def get_drone_neighbors_info(drone_id):
     row, col= DRONE_POSITIONS_IN_GRID[drone_id]
     result=dict()
     if 0<row-1<=GRID_SIZE and 0<col-1<=GRID_SIZE:
-        result['left_bottom']=PRIORITY_MATRIX[row-1, col-1]
+        result['left_bottom']=PRIORITY_MATRIX[row-1, col-1].item()
     if 0<row-1<=GRID_SIZE and 0<col<=GRID_SIZE:
-        result['bottom']=PRIORITY_MATRIX[row-1, col]
+        result['bottom']=PRIORITY_MATRIX[row-1, col].item()
     if 0<row-1<=GRID_SIZE and 0<col+1<=GRID_SIZE:
-        result['right_bottom']=PRIORITY_MATRIX[row-1, col+1]
+        result['right_bottom']=PRIORITY_MATRIX[row-1, col+1].item()
     if 0<row<=GRID_SIZE and 0<col-1<=GRID_SIZE:
-        result['left']=PRIORITY_MATRIX[row, col-1]
+        result['left']=PRIORITY_MATRIX[row, col-1].item()
     if 0<row+1<=GRID_SIZE and 0<col-1<=GRID_SIZE:
-        result['left_top']=PRIORITY_MATRIX[row+1, col-1]
+        result['left_top']=PRIORITY_MATRIX[row+1, col-1].item()
     if 0<row+1<=GRID_SIZE and 0<col<=GRID_SIZE:
-        result['top']=PRIORITY_MATRIX[row+1, col]
+        result['top']=PRIORITY_MATRIX[row+1, col].item()
     if 0<row+1<=GRID_SIZE and 0<col+1<=GRID_SIZE:
-        result['right_top']=PRIORITY_MATRIX[row+1, col+1]
+        result['right_top']=PRIORITY_MATRIX[row+1, col+1].item()
     if 0<row<=GRID_SIZE and 0<col+1<=GRID_SIZE:
-        result['right']=PRIORITY_MATRIX[row, col+1]
+        result['right']=PRIORITY_MATRIX[row, col+1].item()
     return result
 
 MESSAGE_ID=0
-def prepare_drone_info(drones):
+def prepare_drone_info():
     msg=dict()
-    for drone_id, position in drones:
+    for drone_id in range(N):
         msg[drone_id] = get_drone_neighbors_info(drone_id)
 
     return msg
@@ -274,7 +278,7 @@ class CrazyflieSupervisor(Supervisor):
                 db.log_pheromone_matrix(col=i, row=j, pheromone=PHEROMONE_MATRIX[i][j], timestep=self.t)
 
     def save_drone_positions(self):
-        for i, (x, y) in enumerate(DRONE_POSITIONS):
+        for i, (x, y, z) in enumerate(DRONE_POSITIONS):
             db.log_drone_pos(drone_id=i, position_x=x, position_y=y, timestep=self.t)
         for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
             db.log_drone_cell_position(drone_id=drone_id, row=row, col=col, timestep=self.t)
@@ -396,7 +400,7 @@ class CrazyflieSupervisor(Supervisor):
                 # Update pheromone and priority matrices
                 update_pheromone_matrix()
                 update_priority_matrix()
-                msg = prepare_drone_info(drones)
+                msg = prepare_drone_info()
                 # self.emitter.send(prepare_msg('go', msg))
                 self.send_msg('go', msg)
                 self.update_history()

@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="saving logs to db">
+    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="optimisation: borders are calculated once">
+      <change afterPath="$PROJECT_DIR$/test.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/common/grid.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/grid.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/common/pid_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/pid_controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/map/.map.wbproj" beforeDir="false" afterPath="$PROJECT_DIR$/map/.map.wbproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/map/map.osm" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,6 +21,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -115,6 +116,9 @@
       <workItem from="1741976514656" duration="265000" />
       <workItem from="1742049511808" duration="639000" />
       <workItem from="1742108203699" duration="1819000" />
+      <workItem from="1742190704598" duration="612000" />
+      <workItem from="1742191341839" duration="2252000" />
+      <workItem from="1742193660991" duration="13932000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -140,7 +144,15 @@
       <option name="project" value="LOCAL" />
       <updated>1741070357811</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="optimisation: borders are calculated once">
+      <option name="closed" value="true" />
+      <created>1742190814925</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1742190814925</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -150,7 +162,8 @@
     <MESSAGE value="initial commit" />
     <MESSAGE value="version 0.1" />
     <MESSAGE value="saving logs to db" />
-    <option name="LAST_COMMIT_MESSAGE" value="saving logs to db" />
+    <MESSAGE value="optimisation: borders are calculated once" />
+    <option name="LAST_COMMIT_MESSAGE" value="optimisation: borders are calculated once" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -19,41 +19,38 @@ ported from pid_controller.c in the c-based controller of the Crazyflie
 in Webots
 """
 
-import numpy as np
-
+# import numpy as np
+import torch
+from grid import device
 
 class pid_velocity_fixed_height_controller():
     def __init__(self):
-        self.past_vx_error = 0.0
-        self.past_vy_error = 0.0
-        self.past_alt_error = 0.0
-        self.past_pitch_error = 0.0
-        self.past_roll_error = 0.0
-        self.altitude_integrator = 0.0
-        self.last_time = 0.0
+        self.past_v_error = torch.zeros(2,   dtype=torch.float64, device=device)
+        self.past_alt_error  =torch.tensor(0,    dtype=torch.float64, device=device)
+        self.past_pitch_error  =torch.tensor(0,    dtype=torch.float64, device=device)
+        self.past_roll_error =torch.tensor(0,    dtype=torch.float64, device=device)
+        self.altitude_integrator =torch.tensor(0,    dtype=torch.float64, device=device)
+        self.last_time  =torch.tensor(0,    dtype=torch.float64, device=device)
 
-    def pid(self, dt, desired_vx, desired_vy, desired_yaw_rate, desired_altitude, actual_roll, actual_pitch, actual_yaw_rate,
-            actual_altitude, actual_vx, actual_vy):
+    def pid(self, dt, desired_v, desired_yaw_rate, desired_altitude, actual_roll, actual_pitch, actual_yaw_rate,
+            actual_altitude, actual_v):
         # Velocity PID control (converted from Crazyflie c code)
         gains = {"kp_att_y": 1, "kd_att_y": 0.5, "kp_att_rp": 0.5, "kd_att_rp": 0.1,
                  "kp_vel_xy": 2, "kd_vel_xy": 0.5, "kp_z": 10, "ki_z": 5, "kd_z": 5}
 
         # Velocity PID control
-        vx_error = desired_vx - actual_vx
-        vx_deriv = (vx_error - self.past_vx_error) / dt
-        vy_error = desired_vy - actual_vy
-        vy_deriv = (vy_error - self.past_vy_error) / dt
-        desired_pitch = gains["kp_vel_xy"] * np.clip(vx_error, -1, 1) + gains["kd_vel_xy"] * vx_deriv
-        desired_roll = -gains["kp_vel_xy"] * np.clip(vy_error, -1, 1) - gains["kd_vel_xy"] * vy_deriv
-        self.past_vx_error = vx_error
-        self.past_vy_error = vy_error
+        v_error = desired_v - actual_v
+        v_deriv = (v_error - self.past_v_error) / dt
+        desired_pitch = gains["kp_vel_xy"] * torch.clip(v_error[0], -1, 1) + gains["kd_vel_xy"] * v_deriv[0]
+        desired_roll = -gains["kp_vel_xy"] * torch.clip(v_error[1], -1, 1) - gains["kd_vel_xy"] * v_deriv[1]
+        self.past_v_error = v_error
 
         # Altitude PID control
         alt_error = desired_altitude - actual_altitude
         alt_deriv = (alt_error - self.past_alt_error) / dt
         self.altitude_integrator += alt_error * dt
         alt_command = gains["kp_z"] * alt_error + gains["kd_z"] * alt_deriv + \
-            gains["ki_z"] * np.clip(self.altitude_integrator, -2, 2) + 48
+            gains["ki_z"] * torch.clip(self.altitude_integrator, -2, 2) + 48
         self.past_alt_error = alt_error
 
         # Attitude PID control
@@ -62,9 +59,9 @@ class pid_velocity_fixed_height_controller():
         roll_error = desired_roll - actual_roll
         roll_deriv = (roll_error - self.past_roll_error) / dt
         yaw_rate_error = desired_yaw_rate - actual_yaw_rate
-        roll_command = gains["kp_att_rp"] * np.clip(roll_error, -1, 1) + gains["kd_att_rp"] * roll_deriv
-        pitch_command = -gains["kp_att_rp"] * np.clip(pitch_error, -1, 1) - gains["kd_att_rp"] * pitch_deriv
-        yaw_command = gains["kp_att_y"] * np.clip(yaw_rate_error, -1, 1)
+        roll_command = gains["kp_att_rp"] * torch.clip(roll_error, -1, 1) + gains["kd_att_rp"] * roll_deriv
+        pitch_command = -gains["kp_att_rp"] * torch.clip(pitch_error, -1, 1) - gains["kd_att_rp"] * pitch_deriv
+        yaw_command = gains["kp_att_y"] * torch.clip(yaw_rate_error, -1, 1)
         self.past_pitch_error = pitch_error
         self.past_roll_error = roll_error
 
@@ -84,9 +81,9 @@ class pid_velocity_fixed_height_controller():
             print(f'wrong m4: m4={m4}')
 
         # Limit the motor command
-        m1 = np.clip(m1, 0, 600)
-        m2 = np.clip(m2, 0, 600)
-        m3 = np.clip(m3, 0, 600)
-        m4 = np.clip(m4, 0, 600)
+        m1 = torch.clip(m1, 0, 600)
+        m2 = torch.clip(m2, 0, 600)
+        m3 = torch.clip(m3, 0, 600)
+        m4 = torch.clip(m4, 0, 600)
 
-        return [m1, m2, m3, m4]
+        return torch.tensor([m1, m2, m3, m4],    dtype=torch.float64, device=device)
