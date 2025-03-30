@@ -21,7 +21,7 @@ in Webots
 
 # import numpy as np
 import torch
-from grid import device
+from controllers.common.grid import device
 
 class pid_velocity_fixed_height_controller():
     def __init__(self):

@@ -4,13 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="optimisation: borders are calculated once">
-      <change afterPath="$PROJECT_DIR$/test.ipynb" afterDir="false" />
+    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="optimisation: numpy to torch">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/controllers/common/async_db_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/f602a342-819d-4951-8c4e-cea0dd9367f8.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/f602a342-819d-4951-8c4e-cea0dd9367f8.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/f602a342-819d-4951-8c4e-cea0dd9367f8/storage_v2/_src_/database/webots_drone.89nfnA/schema/public.abK9xQ.meta" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/f602a342-819d-4951-8c4e-cea0dd9367f8/storage_v2/_src_/database/webots_drone.89nfnA/schema/public.abK9xQ.meta" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/controllers/common/grid.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/grid.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/common/.env" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/common/pid_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/pid_controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/map/.map.wbproj" beforeDir="false" afterPath="$PROJECT_DIR$/map/.map.wbproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,8 +27,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="Jupyter Notebook" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -54,6 +61,7 @@
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Program Files/Webots/lib/controller/python&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -84,8 +92,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.25659.43" />
-        <option value="bundled-python-sdk-181015f7ab06-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.25659.43" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.26053.29" />
+        <option value="bundled-python-sdk-b1dbf8ef85a6-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.26053.29" />
       </set>
     </attachedChunks>
   </component>
@@ -118,7 +126,11 @@
       <workItem from="1742108203699" duration="1819000" />
       <workItem from="1742190704598" duration="612000" />
       <workItem from="1742191341839" duration="2252000" />
-      <workItem from="1742193660991" duration="13932000" />
+      <workItem from="1742193660991" duration="16171000" />
+      <workItem from="1742580822485" duration="635000" />
+      <workItem from="1742962353423" duration="1888000" />
+      <workItem from="1743329521563" duration="2015000" />
+      <workItem from="1743332145275" duration="12650000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -152,7 +164,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742190814925</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="optimisation: numpy to torch">
+      <option name="closed" value="true" />
+      <created>1742214729994</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1742214729994</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -163,7 +183,8 @@
     <MESSAGE value="version 0.1" />
     <MESSAGE value="saving logs to db" />
     <MESSAGE value="optimisation: borders are calculated once" />
-    <option name="LAST_COMMIT_MESSAGE" value="optimisation: borders are calculated once" />
+    <MESSAGE value="optimisation: numpy to torch" />
+    <option name="LAST_COMMIT_MESSAGE" value="optimisation: numpy to torch" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

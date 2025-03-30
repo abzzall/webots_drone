@@ -28,10 +28,10 @@ from controller import Keyboard
 from controllers.common.grid import *
 from controllers.common.pid_controller import pid_velocity_fixed_height_controller
 import json
-from controllers.common.db_handler import DatabaseHandler
-
+# from controllers.common.db_handler import DatabaseHandler
+from controllers.common.async_db_handler import DroneDBLogger
 # Initialize Database (Session starts in constructor)
-db = DatabaseHandler()
+# init_pool()
 FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
 dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
@@ -78,7 +78,7 @@ def vector_length(vector):
     return torch.norm(vector)
 
 def Fa(directions: dict, pos,  v_old, gridBorders):
-    result = torch.zeros(3, dtype=torch.float64, device=device)
+    result = torch.zeros(2, dtype=torch.float64, device=device)
 
     for direction, priority in directions.items():
         target_vector = get_target_vector(direction, pos, gridBorders)
@@ -113,7 +113,6 @@ if __name__ == '__main__':
     t=0
     robot = Robot()
     # Retrieve the current episode ID
-    db.current_episode_id = db.get_latest_episode_id()
     timestep = int(robot.getBasicTimeStep())
     print('drone controller started')
     # Initialize motors
@@ -189,9 +188,9 @@ if __name__ == '__main__':
     v=[0, 0]
 
 
-
+    db_logger=DroneDBLogger(id)
     while robot.step(timestep) != -1:
-
+        db_logger.next_step()
 
 
 
@@ -274,8 +273,11 @@ if __name__ == '__main__':
                 v=globalSpeedToLocal(calculated_v, yaw)
                 # height_desired=altitude
                 print(f'new velocity: {v}')
+                db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
+                db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
+                db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
         elif pause:
-            v=[0,0]
+            v=torch.tensor([0,0], dtype=torch.float64, device=device)
 
 
         height_desired += height_diff_desired * dt
@@ -291,11 +293,11 @@ if __name__ == '__main__':
         # if you choose direction left, use the right range value
         # if you choose direction right, use the left range value
 
-        db.log_drone_observed_state(timestep=t, drone_id=id, roll=roll, pitch=pitch, yaw=yaw, yaw_rate=yaw_rate,
+        db_logger.insert_drone_observed_state( roll=roll, pitch=pitch, yaw=yaw, yaw_rate=yaw_rate,
                                     x_global=pos_global[0], y_global=pos_global[1], v_x_global=v_global[0], v_y_global=v_global[1],
                                     altitude=altitude, v_x=v[0], v_y=v[1], dt=dt)
 
-        db.log_drone_desired_state(timestep=t, drone_id=id, desired_vx=v[0], desired_vy=v[1],
+        db_logger.insert_drone_desired_state( desired_vx=v[0], desired_vy=v[1],
                                    desired_yaw_rate=yaw_desired, desired_altitude=height_desired)
         # PID velocity controller with fixed height
         motor_power = PID_crazyflie.pid(dt, v,
@@ -306,9 +308,7 @@ if __name__ == '__main__':
         # motor2_speed = Column(Float, nullable=False)
         # motor3_speed = Column(Float, nullable=False)
         # motor4_speed = Column(Float, nullable=False)
-        db.log_drone_motor_power(timestep=t, drone_id=id,
-                                 motor1_speed=motor_power[0], motor2_speed=motor_power[1],
-                                 motor3_speed=motor_power[2], motor4_speed=motor_power[3],)
+        db_logger.insert_drone_motor_power(motor_power)
         m1_motor.setVelocity(-motor_power[0])
         m2_motor.setVelocity(motor_power[1])
         m3_motor.setVelocity(-motor_power[2])
@@ -319,8 +319,9 @@ if __name__ == '__main__':
 
 
         t=t+1
+
         # print(f'GPS position: {[x_global, y_global]}')
-db.close()
+    db_logger.close()
 #encrypting_key === private
 # signature
 

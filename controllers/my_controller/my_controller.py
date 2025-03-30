@@ -13,16 +13,17 @@ import random
 import json
 from controllers.common.grid import *
 # Initialize the Supervisor
-from controllers.common.db_handler import DatabaseHandler
+# from controllers.common.db_handler import DatabaseHandler
+from controllers.common.async_db_handler import SupervisorDBLogger
 
 # Initialize Database (Session starts in constructor)
-db = DatabaseHandler()
+# await init_pool()
 # Global parameters
 PHEROMONE_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 PRIORITY_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 N=3#drone count
-DELAY=1000
-DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.float64, device=device)
+DELAY=2000
+DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.int, device=device)
 DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
 # To track previous drone positions
 # Enable the keyboard interface
@@ -34,7 +35,7 @@ DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
 # DRONE_HISTORY=np.zeros((MAX_T, N, 4), dtype=float)
 
 
-def regular_polygon_vertices_from_inscribed(N, r=1):
+def regular_polygon_vertices_from_inscribed(N=N, r=1):
     """
     Вычисляет координаты вершин правильного N-угольника, в который вписана окружность радиусом r.
 
@@ -51,7 +52,7 @@ def regular_polygon_vertices_from_inscribed(N, r=1):
         return torch.tensor([(0.0, r, torch.pi / 2), (0.0, -r, -torch.pi / 2)], device=device)
 
     # Радиус описанной окружности
-    R = r / torch.cos(torch.pi / N)
+    R = r / torch.cos(torch.tensor(torch.pi / N, device=device))
 
     # Создаем тензор индексов для вершин от 0 до N-1
     k_values = torch.arange(N, dtype=torch.float64, device=device)
@@ -74,6 +75,8 @@ def detect_drones():
     """
     root = supervisor.getRoot()
     children_field = root.getField("children")
+    global DRONE_POSITIONS
+    global DRONE_POSITIONS_IN_GRID
     for i in range(children_field.getCount()):
         node = children_field.getMFNode(i)
         if node.getTypeName() == "Crazyflie":  # Filter by node type
@@ -94,14 +97,14 @@ def update_pheromone_matrix():
     """
     global PHEROMONE_MATRIX
     # Generate row and column indices with float64 precision
-    i_indices = torch.arange(N, dtype=torch.float64, device=device)  # Row indices
-    j_indices = torch.arange(N, dtype=torch.float64, device=device)  # Column indices
+    i_indices = torch.arange(GRID_SIZE+2, dtype=torch.float64, device=device)  # Row indices
+    j_indices = torch.arange(GRID_SIZE+2, dtype=torch.float64, device=device)  # Column indices
     # Create a meshgrid of indices for rows and columns
-    i_grid, j_grid = torch.meshgrid(i_indices, j_indices)
+    i_grid, j_grid = torch.meshgrid(i_indices, j_indices, indexing='ij')
 
     new_pheromone_matrix = torch.zeros_like(PHEROMONE_MATRIX, dtype=torch.float64, device=device)
     for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
-        new_pheromone_matrix[row, col]+= MAX_PHEROMONE / (1+torch.exp2(torch.abs(row - i_grid)) + torch.exp2(torch.abs(col - j_grid)))
+        new_pheromone_matrix+= MAX_PHEROMONE / (1+torch.exp2(torch.abs(row - i_grid)) + torch.exp2(torch.abs(col - j_grid)))
 
 
     # Combine with old pheromone values
@@ -262,6 +265,7 @@ from controller import Supervisor
 class CrazyflieSupervisor(Supervisor):
     def __init__(self):
         super().__init__()
+        self.db_logger = SupervisorDBLogger(N)
         self.drones = []  # List to store drone instances
         self.is_running = False
         self.is_paused = False
@@ -271,17 +275,20 @@ class CrazyflieSupervisor(Supervisor):
         self.create_drones()
 
     def update_history(self):
-
-        for i in range(GRID_SIZE + 1):
-            for j in range(GRID_SIZE + 1):
-                db.log_priority_matrix(col=i, row=j, priority=PRIORITY_MATRIX[i][j], timestep=self.t)
-                db.log_pheromone_matrix(col=i, row=j, pheromone=PHEROMONE_MATRIX[i][j], timestep=self.t)
+        self.db_logger.insert_pheromone_matrix(PRIORITY_MATRIX)
+        self.db_logger.insert_priority_matrix(PRIORITY_MATRIX)
+        # for i in range(GRID_SIZE + 1):
+        #     for j in range(GRID_SIZE + 1):
+        #         db.log_priority_matrix(col=i, row=j, priority=PRIORITY_MATRIX[i][j], timestep=self.t)
+        #         db.log_pheromone_matrix(col=i, row=j, pheromone=PHEROMONE_MATRIX[i][j], timestep=self.t)
 
     def save_drone_positions(self):
         for i, (x, y, z) in enumerate(DRONE_POSITIONS):
-            db.log_drone_pos(drone_id=i, position_x=x, position_y=y, timestep=self.t)
+            # db.log_drone_pos(drone_id=i, position_x=x, position_y=y, timestep=self.t)
+            self.db_logger.insert_drone_position(i, x, y)
         for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
-            db.log_drone_cell_position(drone_id=drone_id, row=row, col=col, timestep=self.t)
+            # db.log_drone_cell_position(drone_id=drone_id, row=row, col=col, timestep=self.t)
+            self.db_logger.insert_drone_position_in_cell( drone_id, row, col)
 
     def send_msg(self, command: str, content=None):
         msg = dict()
@@ -381,15 +388,14 @@ class CrazyflieSupervisor(Supervisor):
         # pos = [random.uniform(-self.floor_width, self.floor_width), random.uniform(-self.floor_depth, self.floor_depth)]
         self.keyboard.enable(int(self.getBasicTimeStep()))
         delay=0
-        # Supervisor creates an episode
-        db.create_episode(drone_count=N)
         self.timestep=int(self.getBasicTimeStep())
         self.quit=False
         while self.step(int(self.getBasicTimeStep())) != -1 and not self.quit:
+            self.db_logger.next_step()
             self.t=self.t+1
             self.process_key_press()
             delay += self.getBasicTimeStep()
-            drones = detect_drones()
+            detect_drones()
             self.save_drone_positions()
             if self.is_running and not self.is_paused and delay>1000:
                 # Supervisor's main loop for controlling simulation if needed
@@ -407,7 +413,7 @@ class CrazyflieSupervisor(Supervisor):
 
                 delay = 0
 
-
+        self.db_logger.close()
         # np.savez_compressed("arrays_compressed.npz", first=PHEROMONE_MATRIX, second=PRIORITY_MATRIX,
         #                     third=DRONE_HISTORY)
 
@@ -415,6 +421,5 @@ if __name__ == '__main__':
     # Create the supervisor and run the simulation
     supervisor = CrazyflieSupervisor()
     supervisor.run()
-    db.close()
 
 
