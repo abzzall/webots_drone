@@ -34,7 +34,7 @@ from controllers.common.async_db_handler import DroneDBLogger
 # init_pool()
 FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
-dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
+dV=torch.tensor(0.3,  dtype=torch.float64, device=device)
 
 
 def angle_between_vectors(v1: torch.Tensor, v2: torch.Tensor):
@@ -84,7 +84,7 @@ def Fa(directions: dict, pos,  v_old, gridBorders):
         target_vector = get_target_vector(direction, pos, gridBorders)
         target_vector_length = vector_length(target_vector)
         target_angle = angle_between_vectors(v_old, target_vector)
-        koef=priority+0.1*torch.cos(target_angle)+0.1*target_vector_length/MAX_TARGET_DISTANCE
+        koef=priority+0.01*torch.cos(target_angle)+0.01*target_vector_length/MAX_TARGET_DISTANCE
         result+=target_vector*koef/target_vector_length
     return result
 
@@ -246,6 +246,7 @@ if __name__ == '__main__':
                     elif (command == 'go'):
                         message_received=True
                         new_info=message_data["CONTENT"][str(id)]
+                    db_logger.insert_msg_received(message_id, message)
                         # print(f'start moving: {new_info}')
 
             except json.JSONDecodeError:

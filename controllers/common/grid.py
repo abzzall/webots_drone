@@ -8,7 +8,7 @@ CELL_WIDTH = FLOOR_WIDTH / GRID_SIZE
 CELL_DEPTH = FLOOR_DEPTH / GRID_SIZE
 MAX_TARGET_DISTANCE = torch.sqrt(CELL_WIDTH**2 + CELL_DEPTH**2)
 GRID_BORDERS=torch.zeros((GRID_SIZE + 2, GRID_SIZE + 2, 6), dtype=torch.float64, device=device)
-MAX_PHEROMONE = torch.exp2(torch.tensor(100, dtype=torch.float64, device=device))
+MAX_PHEROMONE = torch.exp2(torch.tensor(20, dtype=torch.float64, device=device))
 def init_grid_borders():
     global GRID_BORDERS
     # Create a tensor for grid borders
@@ -42,6 +42,7 @@ def init_grid_borders():
     # Optionally, move the result to GPU if needed
     GRID_BORDERS = GRID_BORDERS.to(device)
 
+init_grid_borders()
 
 def find_grid_coordinates(pos):
     """
