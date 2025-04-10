@@ -21,7 +21,7 @@ from controllers.common.async_db_handler import SupervisorDBLogger
 # Global parameters
 PHEROMONE_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 PRIORITY_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
-N=3#drone count
+N=5#drone count
 DELAY=500
 DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.int, device=device)
 DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
@@ -343,9 +343,9 @@ class CrazyflieSupervisor(Supervisor):
         for i, (x, y, z) in enumerate(DRONE_POSITIONS):
             # db.log_drone_pos(drone_id=i, position_x=x, position_y=y, timestep=self.t)
             self.db_logger.insert_drone_position(i, x, y)
-        for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
+        # for drone_id, (row, col) in enumerate(DRONE_POSITIONS_IN_GRID):
             # db.log_drone_cell_position(drone_id=drone_id, row=row, col=col, timestep=self.t)
-            self.db_logger.insert_drone_position_in_cell( drone_id, row, col)
+            # self.db_logger.insert_drone_position_in_cell( drone_id, row, col)
 
     def send_msg(self, command: str, content=None):
         msg = dict()
@@ -360,7 +360,7 @@ class CrazyflieSupervisor(Supervisor):
         # return json_message.encode()
         full_text=json_message.encode()
         self.emitter.send(full_text)
-        self.db_logger.insert_msg_sent(self.message_id, command, str(content), full_text.decode())
+        # self.db_logger.insert_msg_sent(self.message_id, command, str(content), full_text.decode())
         # db.log_msg_sent(timestep=self.t, command=command, content=content, id=MESSAGE_ID, full_text=full_text)
 
 
