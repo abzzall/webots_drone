@@ -21,29 +21,29 @@ from controllers.common.async_db_handler import SupervisorDBLogger
 # Global parameters
 PHEROMONE_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 PRIORITY_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
-N=5#drone count
-DELAY=500
+N=3#drone count
+DELAY=1000
 DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.int, device=device)
 DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
 # To track previous drone positions
 # Enable the keyboard interface
-def fill_initial_pheromone():
-    global PHEROMONE_MATRIX
-
-    indices = torch.arange(502, dtype=torch.float64, device=device)
-    i_grid, j_grid = torch.meshgrid(indices, indices, indexing='ij')
-
-    dist_top = i_grid
-    dist_bottom = 501 - i_grid
-    dist_left = j_grid
-    dist_right = 501 - j_grid
-
-    # Use amin to get min along dimension 0 (across the stacked tensor)
-    min_dist = torch.stack([dist_top, dist_bottom, dist_left, dist_right], dim=0).amin(dim=0)
-
-    decay_base = 0.9
-    PHEROMONE_MATRIX = MAX_PHEROMONE * torch.pow(decay_base, min_dist)
-fill_initial_pheromone()
+# def fill_initial_pheromone():
+#     global PHEROMONE_MATRIX
+#
+#     indices = torch.arange(GRID_SIZE+2, dtype=torch.float64, device=device)
+#     i_grid, j_grid = torch.meshgrid(indices, indices, indexing='ij')
+#
+#     dist_top = i_grid
+#     dist_bottom = GRID_SIZE+1 - i_grid
+#     dist_left = j_grid
+#     dist_right = GRID_SIZE+1 - j_grid
+#
+#     # Use amin to get min along dimension 0 (across the stacked tensor)
+#     min_dist = torch.stack([dist_top, dist_bottom, dist_left, dist_right], dim=0).amin(dim=0)
+#
+#     decay_base = 0.9
+#     PHEROMONE_MATRIX = MAX_PHEROMONE * torch.pow(decay_base, min_dist)
+# fill_initial_pheromone()
 
 # MAX_T=1000
 # PHEROMONE_HISTORY=np.zeros((MAX_T, GRID_SIZE+2, GRID_SIZE+2), dtype=float)
@@ -51,7 +51,7 @@ fill_initial_pheromone()
 # DRONE_HISTORY=np.zeros((MAX_T, N, 4), dtype=float)
 
 
-def regular_polygon_vertices_from_inscribed(N=N, r=2):
+def regular_polygon_vertices_from_inscribed(N=N, r=10):
     """
     Вычисляет координаты вершин правильного N-угольника, в который вписана окружность радиусом r.
 
@@ -106,75 +106,142 @@ def detect_drones():
             DRONE_POSITIONS_IN_GRID[drone_id, :] = find_grid_coordinates(pos)
 
 
-def update_pheromone_matrix():
+# def update_pheromone_matrix():
+#     """
+#     Update the pheromone matrix based on drone positions and decay function.
+#     Drones emit pheromones in a way that decays exponentially with distance.
+#     """
+#     global PHEROMONE_MATRIX
+#
+#     # Create grid coordinates
+#     i_grid, j_grid = torch.meshgrid(
+#         torch.arange(GRID_SIZE + 2, dtype=torch.float64, device=device),
+#         torch.arange(GRID_SIZE + 2, dtype=torch.float64, device=device),
+#         indexing='ij'
+#     )
+#
+#     # Compute new pheromone from all drones at once
+#     rows_meshgrid = torch.tensor([pos[0] for pos in DRONE_POSITIONS_IN_GRID], dtype=torch.float64, device=device).view(-1, 1, 1)
+#     cols_meshgrid = torch.tensor([pos[1] for pos in DRONE_POSITIONS_IN_GRID], dtype=torch.float64, device=device).view(-1, 1, 1)
+#
+#     dist_i = torch.abs(rows_meshgrid - i_grid)
+#     dist_j = torch.abs(cols_meshgrid - j_grid)
+#
+#     drone_pheromones = MAX_PHEROMONE / (1 + torch.exp2(dist_i) + torch.exp2(dist_j))  # Shape: (N_drones, H, W)
+#     new_pheromone_matrix = drone_pheromones.sum(dim=0)  # Sum over drones
+#
+#     # Combine with old pheromone (smoothing factor α = 0.5)
+#     PHEROMONE_MATRIX = 0.5 * PHEROMONE_MATRIX + 0.5 * new_pheromone_matrix
+#
+#
+#     # Clamp to avoid overflow
+#     PHEROMONE_MATRIX = torch.clamp(PHEROMONE_MATRIX, 0, MAX_PHEROMONE)
+#     # Assuming DRONE_POSITIONS_IN_GRID is of shape (N, 2) with rows and columns
+#     rows = DRONE_POSITIONS_IN_GRID[:, 0]
+#     cols = DRONE_POSITIONS_IN_GRID[:, 1]
+#     noise_strength = 0.001
+#     # Use advanced indexing to set those cells in PHEROMONE_MATRIX
+#     PHEROMONE_MATRIX[rows, cols] = MAX_PHEROMONE
+#     noise = torch.rand_like(PHEROMONE_MATRIX) * (MAX_PHEROMONE * noise_strength)
+#
+#     # Apply noise only where pheromone is not maxed out
+#     mask = PHEROMONE_MATRIX < MAX_PHEROMONE
+#     PHEROMONE_MATRIX = PHEROMONE_MATRIX + noise * mask
+#     PHEROMONE_MATRIX = torch.clamp(PHEROMONE_MATRIX, 0, MAX_PHEROMONE)
+def update_pheromone_matrix(alpha=0.9):
     """
-    Update the pheromone matrix based on drone positions and decay function.
-    Drones emit pheromones in a way that decays exponentially with distance.
+    Update pheromone matrix with scaling to one first, then applying MAX_PHEROMONE.
+    Drone positions are always set directly to MAX_PHEROMONE.
     """
     global PHEROMONE_MATRIX
 
-    # Create grid coordinates
-    i_grid, j_grid = torch.meshgrid(
-        torch.arange(GRID_SIZE + 2, dtype=torch.float64, device=device),
-        torch.arange(GRID_SIZE + 2, dtype=torch.float64, device=device),
-        indexing='ij'
-    )
+    N_drones = DRONE_POSITIONS_IN_GRID.shape[0]
+    if N_drones == 0:
+        return
 
-    # Compute new pheromone from all drones at once
-    rows_meshgrid = torch.tensor([pos[0] for pos in DRONE_POSITIONS_IN_GRID], dtype=torch.float64, device=device).view(-1, 1, 1)
-    cols_meshgrid = torch.tensor([pos[1] for pos in DRONE_POSITIONS_IN_GRID], dtype=torch.float64, device=device).view(-1, 1, 1)
+    indices = torch.arange(GRID_SIZE + 2, dtype=torch.float64, device=device)
+    i_grid, j_grid = torch.meshgrid(indices, indices, indexing='ij')
 
-    dist_i = torch.abs(rows_meshgrid - i_grid)
-    dist_j = torch.abs(cols_meshgrid - j_grid)
+    drone_rows = DRONE_POSITIONS_IN_GRID[:, 0].view(-1, 1, 1)
+    drone_cols = DRONE_POSITIONS_IN_GRID[:, 1].view(-1, 1, 1)
 
-    drone_pheromones = MAX_PHEROMONE / (1 + torch.exp2(dist_i) + torch.exp2(dist_j))  # Shape: (N_drones, H, W)
-    new_pheromone_matrix = drone_pheromones.sum(dim=0)  # Sum over drones
+    dist_i = torch.abs(drone_rows - i_grid)
+    dist_j = torch.abs(drone_cols - j_grid)
+    decay = torch.pow(0.9, dist_i + dist_j)  # (N_drones, H, W)
 
-    # Combine with old pheromone (smoothing factor α = 0.5)
-    PHEROMONE_MATRIX = 0.9 * PHEROMONE_MATRIX + 0.1 * new_pheromone_matrix
+    # Sum the contributions and normalize to [0, 1]
+    new_pheromone_matrix = decay.sum(dim=0)
+    max_value = new_pheromone_matrix.max()
+    if max_value > 0:
+        new_pheromone_matrix = new_pheromone_matrix / max_value  # Scaling to one
 
+    # Then apply MAX_PHEROMONE after normalization
+    new_pheromone_matrix = MAX_PHEROMONE * new_pheromone_matrix
 
-    # Clamp to avoid overflow
-    PHEROMONE_MATRIX = torch.clamp(PHEROMONE_MATRIX, 0, MAX_PHEROMONE)
-    # Assuming DRONE_POSITIONS_IN_GRID is of shape (N, 2) with rows and columns
-    rows = DRONE_POSITIONS_IN_GRID[:, 0]
-    cols = DRONE_POSITIONS_IN_GRID[:, 1]
-    noise_strength = 0.001
-    # Use advanced indexing to set those cells in PHEROMONE_MATRIX
+    # Smooth update
+    PHEROMONE_MATRIX = alpha * PHEROMONE_MATRIX + (1 - alpha) * new_pheromone_matrix
+
+    # Set drone positions to MAX_PHEROMONE directly
+    rows = DRONE_POSITIONS_IN_GRID[:, 0].long()
+    cols = DRONE_POSITIONS_IN_GRID[:, 1].long()
     PHEROMONE_MATRIX[rows, cols] = MAX_PHEROMONE
-    noise = torch.rand_like(PHEROMONE_MATRIX) * (MAX_PHEROMONE * noise_strength)
 
-    # Apply noise only where pheromone is not maxed out
-    mask = PHEROMONE_MATRIX < MAX_PHEROMONE
-    PHEROMONE_MATRIX = PHEROMONE_MATRIX + noise * mask
+    # Clamp values just in case
     PHEROMONE_MATRIX = torch.clamp(PHEROMONE_MATRIX, 0, MAX_PHEROMONE)
 
-def update_priority_matrix():
+# def update_priority_matrix():
+#     """
+#     Compute priority from pheromone:
+#     - Inversely proportional
+#     - Higher contrast via log2 scaling
+#     - Priority ∈ [0, 1]
+#     - Drone positions get zero priority
+#     """
+#     global PRIORITY_MATRIX
+#
+#     epsilon = 1e-8  # To prevent log(0)
+#
+#     # Normalize pheromone to [0, 1]
+#     norm_pheromone = PHEROMONE_MATRIX / (MAX_PHEROMONE + epsilon)
+#
+#     # Use log2 to increase diversity
+#     log_inv = 1 - torch.log2(norm_pheromone + epsilon) / torch.log2(
+#         torch.tensor(1 / epsilon, dtype=torch.float64, device=device))
+#
+#     # Clamp for safety
+#     PRIORITY_MATRIX = torch.clamp(log_inv, 0.0, 1.0)
+#
+#     # Zero out drone cells
+#     for (row, col) in DRONE_POSITIONS_IN_GRID:
+#         PRIORITY_MATRIX[int(row), int(col)] = 0.0
+
+def update_priority_matrix(power=3.0):
     """
-    Compute priority from pheromone:
-    - Inversely proportional
-    - Higher contrast via log2 scaling
-    - Priority ∈ [0, 1]
-    - Drone positions get zero priority
+    Compute sharper inverse priority from pheromone using power-law inversion.
+
+    Args:
+        power (float): Controls the sharpness of inversion (e.g., 2.0 for sharper contrast).
     """
     global PRIORITY_MATRIX
 
-    epsilon = 1e-8  # To prevent log(0)
+    epsilon = 1e-8  # Prevent division by zero
 
-    # Normalize pheromone to [0, 1]
+    # Normalize pheromone matrix
     norm_pheromone = PHEROMONE_MATRIX / (MAX_PHEROMONE + epsilon)
+    norm_pheromone = torch.clamp(norm_pheromone, epsilon, 1.0)
 
-    # Use log2 to increase diversity
-    log_inv = 1 - torch.log2(norm_pheromone + epsilon) / torch.log2(
-        torch.tensor(1 / epsilon, dtype=torch.float64, device=device))
+    # Compute inverse with adjustable sharpness
+    inv_pheromone = (1.0 / norm_pheromone) ** power
 
-    # Clamp for safety
-    PRIORITY_MATRIX = torch.clamp(log_inv, 0.0, 1.0)
+    # Normalize result to [0, 1]
+    max_value = torch.max(inv_pheromone)
+    PRIORITY_MATRIX = inv_pheromone / (max_value + epsilon)
 
-    # Zero out drone cells
-    for (row, col) in DRONE_POSITIONS_IN_GRID:
-        PRIORITY_MATRIX[int(row), int(col)] = 0.0
-
+    # Zero out drone positions
+    # Instead of the loop:
+    rows = DRONE_POSITIONS_IN_GRID[:, 0].long()
+    cols = DRONE_POSITIONS_IN_GRID[:, 1].long()
+    PRIORITY_MATRIX[rows, cols] = 0.0
 
 
 def get_drone_neighbors_info(drone_id):
@@ -456,6 +523,8 @@ class CrazyflieSupervisor(Supervisor):
             detect_drones()
             if self.is_running and not self.is_paused:
                 self.save_drone_positions()
+            if self.is_running and self.t % 100 == 0:
+                self.update_history()
             if self.is_running and not self.is_paused and delay>DELAY:
                 # Supervisor's main loop for controlling simulation if needed
                  # Add your own logic here
@@ -468,8 +537,6 @@ class CrazyflieSupervisor(Supervisor):
                 msg = prepare_drone_info()
                 # self.emitter.send(prepare_msg('go', msg))
                 self.send_msg('go', msg)
-                self.update_history()
-
                 delay = 0
 
         self.db_logger.close()

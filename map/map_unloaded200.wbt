@@ -1,0 +1,46 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "../protos/Floor.proto"
+IMPORTABLE EXTERNPROTO "../protos/Crazyflie.proto"
+
+WorldInfo {
+  info [
+    "World generated using the Open Street Map to Webots importer"
+    "Author: David Mansolino <david.mansolino@epfl.ch>"
+  ]
+}
+Viewpoint {
+  fieldOfView 1.5707963267948966
+  orientation 0.5582730477131269 0.12874384668966485 -0.8196073609580656 3.488452023539466
+  position 20.7282080528138 -25.81788420828127 52.10564209216926
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF floor Floor {
+  translation 0 0 -0.02
+  size 200 200
+  appearance PBRAppearance {
+    baseColorMap ImageTexture {
+      url [
+        "./high_res_map_835x913.png"
+      ]
+    }
+    roughness 1
+    metalness 0
+  }
+}
+DEF supervisor Robot {
+  children [
+    Receiver {
+    }
+    Emitter {
+      channel 1
+    }
+  ]
+  controller "my_controller"
+  supervisor TRUE
+}

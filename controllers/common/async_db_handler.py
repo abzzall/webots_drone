@@ -36,12 +36,12 @@ class SupervisorDBLogger(BaseDBLogger):
             return await conn.fetchval("INSERT INTO episodes (drone_count) VALUES ($1) RETURNING id;", drone_count)
 
     def insert_pheromone_matrix(self, cuda_tensor):
-        cpu_tensor = cuda_tensor.detach().cpu().numpy().astype('float64').tobytes()
+        cpu_tensor = cuda_tensor.detach().cpu().numpy().astype('float32').tobytes()
         query = "INSERT INTO pheromone_matrix_logs (episode_id, timestep, pheromone) VALUES ($1, $2, $3);"
         self.loop.run_until_complete(self.pool.execute(query, self.episode_id, self.timestep, cpu_tensor))
 
     def insert_priority_matrix(self, cuda_tensor):
-        cpu_tensor = cuda_tensor.detach().cpu().numpy().astype('float64').tobytes()
+        cpu_tensor = cuda_tensor.detach().cpu().numpy().astype('float32').tobytes()
         query = "INSERT INTO priority_matrix_logs (episode_id, timestep, priority) VALUES ($1, $2, $3);"
         self.loop.run_until_complete(self.pool.execute(query, self.episode_id, self.timestep, cpu_tensor))
     #

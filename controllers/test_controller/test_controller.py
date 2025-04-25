@@ -34,7 +34,7 @@ import json
 # init_pool()
 FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
-dV=torch.tensor(0.3,  dtype=torch.float64, device=device)
+dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
 
 
 def angle_between_vectors(v1: torch.Tensor, v2: torch.Tensor):
@@ -91,9 +91,9 @@ def Fa(directions: dict, pos,  v_old, gridBorders):
 def calc_dv(Fa, dV_max=dV):
     return Fa*dV_max/vector_length(Fa)
 
-def V(v_old, dv):
-
+def V(v_old, dv, alpha=0.5):
     new_v=dv+v_old
+    new_v=alpha*v_old+(1-alpha)*new_v
     magnitude = torch.norm(new_v)
     if magnitude > V_MAX:
         scale = V_MAX / magnitude
@@ -260,26 +260,27 @@ if __name__ == '__main__':
                 #start going with
                 v=torch.tensor([1, 0] , dtype=torch.float64, device=device)
                 calculated_v=torch.tensor([0, 0] , dtype=torch.float64, device=device) #first is wrong (to avoid NullPointer)
-            else:
-                print(f'Estimated velocity: {calculated_v},{yaw_desired}  real velocity: {[v_current, yaw]}, global velocity: [{v_global}]')
-                print(f'dSpeed: {v-v_current},[{yaw_desired}], {calculated_v-v_global})]')
-                row, column = find_grid_coordinates(pos_global)
-                gridBorders=grid_borders(row, column)
-                fa=Fa(directions=new_info, v_old=v_global, pos=pos_global, gridBorders=gridBorders)
 
-                dv=calc_dv(fa)
-
-                calculated_v=V(v_old= v_global, dv=dv)
-
-                v=globalSpeedToLocal(calculated_v, yaw)
-                # height_desired=altitude
-                print(f'new velocity: {v}')
-                # db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
-                # db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
-                # db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
         elif pause:
             v=torch.tensor([0,0], dtype=torch.float64, device=device)
+        elif not pause:
+            print(
+                f'Estimated velocity: {calculated_v},{yaw_desired}  real velocity: {[v_current, yaw]}, global velocity: [{v_global}]')
+            print(f'dSpeed: {v - v_current},[{yaw_desired}], {calculated_v - v_global})]')
+            row, column = find_grid_coordinates(pos_global)
+            gridBorders = grid_borders(row, column)
+            fa = Fa(directions=new_info, v_old=v_global, pos=pos_global, gridBorders=gridBorders)
 
+            dv = calc_dv(fa)
+
+            calculated_v = V(v_old=v_global, dv=dv)
+
+            v = globalSpeedToLocal(calculated_v, yaw)
+            # height_desired=altitude
+            print(f'new velocity: {v}')
+            # db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
+            # db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
+            # db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
 
         height_desired += height_diff_desired * dt
 

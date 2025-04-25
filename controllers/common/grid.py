@@ -1,7 +1,7 @@
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
-GRID_SIZE = torch.tensor( 500, device=device)  # 500x500 grid
+GRID_SIZE = torch.tensor( 100, device=device)
 FLOOR_WIDTH = torch.tensor(835, device=device)
 FLOOR_DEPTH = torch.tensor(913, device=device)
 CELL_WIDTH = FLOOR_WIDTH / GRID_SIZE
@@ -51,18 +51,29 @@ def find_grid_coordinates(pos):
     """
     column = int(torch.floor((pos[0] + FLOOR_WIDTH / 2) / CELL_WIDTH)) + 1
     row = int(torch.floor((pos[1] + FLOOR_DEPTH / 2) / CELL_DEPTH)) + 1
-    left_x, middle_x, right_x, bottom_y, middle_y, top_y=grid_borders(row, column)
-    if pos[0] < left_x:
-        column = column - 1
-    if pos[1] < bottom_y:
-        row = row - 1
-    if pos[0] > right_x:
-        column = column + 1
-    if pos[1] > top_y:
-        row = row + 1
-
     if not 0 <= row <= GRID_SIZE+1 or not 0 <= column <= GRID_SIZE+1:
         print(f"Coordinates ({pos}) are out of grid bounds!")
+        if row<0:
+            row=0
+        elif row>GRID_SIZE:
+            row=GRID_SIZE
+        if column<0:
+            column=0
+        elif column>GRID_SIZE:
+            column=GRID_SIZE
+    # left_x, middle_x, right_x, bottom_y, middle_y, top_y=grid_borders(row, column)
+    #
+    #
+    # if pos[0] < left_x:
+    #     column = column - 1
+    # if pos[1] < bottom_y:
+    #     row = row - 1
+    # if pos[0] > right_x:
+    #     column = column + 1
+    # if pos[1] > top_y:
+    #     row = row + 1
+
+
     return torch.tensor([row, column], dtype=torch.int, device=device)
 
 def grid_borders(row, column):
