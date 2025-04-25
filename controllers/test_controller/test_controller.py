@@ -19,6 +19,8 @@ Controls the crazyflie and implements a wall following method in webots in Pytho
 Author:   Kimberly McGuire (Bitcraze AB)
 """
 import sys
+
+
 # Add the libraries directory to the Python path
 sys.path.append('../..')
 import torch
@@ -33,6 +35,9 @@ import json
 # Initialize Database (Session starts in constructor)
 # init_pool()
 FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
+
+ALTITUDE_THRESHOLD = torch.tensor(0.05, dtype=torch.float64, device=device)  # 10 cm threshold
+ANGULAR_THRESHOLD = torch.deg2rad(torch.tensor(30.0, dtype=torch.float64, device=device))
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
 dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
 
@@ -225,62 +230,71 @@ if __name__ == '__main__':
         height_diff_desired = torch.tensor(0, dtype=torch.float64, device=device)
 
         message_received = False
+        altitude_error = torch.abs(altitude - height_desired)
+        pitch_error = torch.abs(pitch)
+        roll_error = torch.abs(roll)
+        if altitude_error <= ALTITUDE_THRESHOLD and pitch_error <= ANGULAR_THRESHOLD and roll_error <= ANGULAR_THRESHOLD:
 
-        while receiver.getQueueLength() > 0:
-            message = receiver.getString()
-            receiver.nextPacket()  # Move to the next message
+            while receiver.getQueueLength() > 0:
+                message = receiver.getString()
+                receiver.nextPacket()  # Move to the next message
 
-            try:
-                # Parse JSON message
-                message_data = json.loads(message)
-                # Process received data
-                message_id = message_data["MESSAGE_ID"]
-                if (message_id > MESSAGE_ID):
+                try:
+                    # Parse JSON message
+                    message_data = json.loads(message)
+                    # Process received data
+                    message_id = message_data["MESSAGE_ID"]
+                    if (message_id > MESSAGE_ID):
 
-                    command=message_data["COMMAND"]
-                    # print(f"Command received{command}")
-                    if (command == 'pause'):
-                        pause=True
-                    elif (command == 'up'):
-                        height_diff_desired+=float(message_data["CONTENT"])
-                    elif (command == 'go'):
-                        message_received=True
-                        new_info=message_data["CONTENT"][str(id)]
-                    # db_logger.insert_msg_received(message_id, message)
-                        # print(f'start moving: {new_info}')
+                        command=message_data["COMMAND"]
+                        # print(f"Command received{command}")
+                        if (command == 'pause'):
+                            pause=True
+                        elif (command == 'up'):
+                            height_diff_desired+=float(message_data["CONTENT"])
+                        elif (command == 'go'):
+                            message_received=True
+                            new_info=message_data["CONTENT"][str(id)]
+                        # db_logger.insert_msg_received(message_id, message)
+                            # print(f'start moving: {new_info}')
 
-            except json.JSONDecodeError:
-                print("Error decoding JSON message")
+                except json.JSONDecodeError:
+                    print("Error decoding JSON message")
 
 
-        if message_received:
-            if pause:
-                pause=False
-                print('Starting movement')
-                #start going with
-                v=torch.tensor([1, 0] , dtype=torch.float64, device=device)
-                calculated_v=torch.tensor([0, 0] , dtype=torch.float64, device=device) #first is wrong (to avoid NullPointer)
+            if message_received:
+                if pause:
+                    pause=False
+                    # print('Starting movement')
+                    #start going with
+                    v=torch.tensor([1, 0] , dtype=torch.float64, device=device)
+                    calculated_v=torch.tensor([0, 0] , dtype=torch.float64, device=device) #first is wrong (to avoid NullPointer)
 
+            elif pause:
+                v=torch.tensor([0,0], dtype=torch.float64, device=device)
+            elif not pause:
+                # print(
+                #     f'Estimated velocity: {calculated_v},{yaw_desired}  real velocity: {[v_current, yaw]}, global velocity: [{v_global}]')
+                # print(f'dSpeed: {v - v_current},[{yaw_desired}], {calculated_v - v_global})]')
+                row, column = find_grid_coordinates(pos_global)
+                gridBorders = grid_borders(row, column)
+                fa = Fa(directions=new_info, v_old=v_global, pos=pos_global, gridBorders=gridBorders)
+
+                dv = calc_dv(fa)
+
+                calculated_v = V(v_old=v_global, dv=dv)
+
+                v = globalSpeedToLocal(calculated_v, yaw)
+                # height_desired=altitude
+                # print(f'new velocity: {v}')
+                # db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
+                # db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
+                # db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
         elif pause:
-            v=torch.tensor([0,0], dtype=torch.float64, device=device)
-        elif not pause:
-            print(
-                f'Estimated velocity: {calculated_v},{yaw_desired}  real velocity: {[v_current, yaw]}, global velocity: [{v_global}]')
-            print(f'dSpeed: {v - v_current},[{yaw_desired}], {calculated_v - v_global})]')
-            row, column = find_grid_coordinates(pos_global)
-            gridBorders = grid_borders(row, column)
-            fa = Fa(directions=new_info, v_old=v_global, pos=pos_global, gridBorders=gridBorders)
-
-            dv = calc_dv(fa)
-
-            calculated_v = V(v_old=v_global, dv=dv)
-
-            v = globalSpeedToLocal(calculated_v, yaw)
-            # height_desired=altitude
-            print(f'new velocity: {v}')
-            # db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
-            # db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
-            # db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
+                v=torch.tensor([0,0], dtype=torch.float64, device=device)
+        else:
+            v=v*0.9#dumping
+            print(f'dumping: {id}: altitude error: {altitude_error}, pitch error: {pitch_error}, roll error: {roll_error}')
 
         height_desired += height_diff_desired * dt
 

@@ -474,27 +474,27 @@ class CrazyflieSupervisor(Supervisor):
 
         # Add the function behavior here
 
-    def process_key_press(self):
-        """Handle key presses to start, pause, or execute functions."""
-        # print(int(self.getBasicTimeStep()))
-
-        key = self.keyboard.getKey()
-        if key != -1:
-            print(f'key: {key}: pressed: {chr(key)}')
-        if key == ord('S'):  # 'S' key starts the simulation
-            if not self.is_running:
-                self.start_simulation()
-        elif key == ord('P'):  # 'P' key pauses the simulation
-            if not self.is_paused:
-                self.pause_simulation()
-        elif key == ord('Q'):  # 'F' key executes the function
-            self.quit=True
-        elif key == ord('U'):
-            self.send_go_up()
-        elif key == ord('G'):
-            visualize_grid(self.floor_width, self.floor_depth)
-        elif key == ord('H'):
-            delete_grid()
+    # def process_key_press(self):
+    #     """Handle key presses to start, pause, or execute functions."""
+    #     # print(int(self.getBasicTimeStep()))
+    #
+    #     # key = self.keyboard.getKey()
+    #     if key != -1:
+    #         print(f'key: {key}: pressed: {chr(key)}')
+    #     if key == ord('S'):  # 'S' key starts the simulation
+    #         if not self.is_running:
+    #             self.start_simulation()
+    #     elif key == ord('P'):  # 'P' key pauses the simulation
+    #         if not self.is_paused:
+    #             self.pause_simulation()
+    #     elif key == ord('Q'):  # 'F' key executes the function
+    #         self.quit=True
+    #     elif key == ord('U'):
+    #         self.send_go_up()
+    #     elif key == ord('G'):
+    #         visualize_grid(self.floor_width, self.floor_depth)
+    #     elif key == ord('H'):
+    #         delete_grid()
     def run(self):
 
         """Main loop of the supervisor."""
@@ -518,7 +518,8 @@ class CrazyflieSupervisor(Supervisor):
         while self.step(int(self.getBasicTimeStep())) != -1 and not self.quit:
             self.db_logger.next_step()
             self.t=self.t+1
-            self.process_key_press()
+            # self.process_key_press()
+            self.is_running=True
             delay += self.getBasicTimeStep()
             detect_drones()
             if self.is_running and not self.is_paused:
