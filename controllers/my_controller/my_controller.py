@@ -1,4 +1,11 @@
+from datetime import datetime
 import sys
+
+# Print current time
+print(f"Simulation started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# Print which Python interpreter is used
+print(f"Python interpreter path: {sys.executable}")
 import os
 
 import torch
@@ -15,7 +22,7 @@ from controllers.common.grid import *
 # Initialize the Supervisor
 # from controllers.common.db_handler import DatabaseHandler
 from controllers.common.async_db_handler import SupervisorDBLogger
-
+from datetime import datetime
 # Initialize Database (Session starts in constructor)
 # await init_pool()
 # Global parameters
@@ -504,7 +511,7 @@ class CrazyflieSupervisor(Supervisor):
         floor_size = get_floor_size(floor_def_name)
 
         if not floor_size:
-            print("Could not retrieve floor size. Exiting...")
+            print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}:Could not retrieve floor size. Exiting...")
             return
 
         self.floor_width, self.floor_depth = floor_size

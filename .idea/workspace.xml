@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="altitude error">
+    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="autonomous start">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/map/map_unloaded.wbt" beforeDir="false" afterPath="$PROJECT_DIR$/map/map_unloaded.wbt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -159,7 +156,7 @@
       <workItem from="1745572559731" duration="17707000" />
       <workItem from="1745600032478" duration="15000" />
       <workItem from="1745601648209" duration="3818000" />
-      <workItem from="1745651990688" duration="2426000" />
+      <workItem from="1745651990688" duration="3471000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -241,7 +238,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745609199620</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="autonomous start">
+      <option name="closed" value="true" />
+      <created>1745654781959</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1745654781959</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -258,7 +263,8 @@
     <MESSAGE value="reduce db usage" />
     <MESSAGE value="last commit" />
     <MESSAGE value="altitude error" />
-    <option name="LAST_COMMIT_MESSAGE" value="altitude error" />
+    <MESSAGE value="autonomous start" />
+    <option name="LAST_COMMIT_MESSAGE" value="autonomous start" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/webots_drone$main.coverage" NAME="main Coverage Results" MODIFIED="1743764519272" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

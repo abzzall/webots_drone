@@ -119,7 +119,7 @@ if __name__ == '__main__':
     robot = Robot()
     # Retrieve the current episode ID
     timestep = int(robot.getBasicTimeStep())
-    print('drone controller started')
+    print(f'{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: drone controller started')
     # Initialize motors
     m1_motor = robot.getDevice("m1_motor")
     m1_motor.setPosition(float('inf'))
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                             # print(f'start moving: {new_info}')
 
                 except json.JSONDecodeError:
-                    print("Error decoding JSON message")
+                    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}:Error decoding JSON message")
 
 
             if message_received:
@@ -295,7 +295,7 @@ if __name__ == '__main__':
 
                 v=torch.tensor([0,0], dtype=torch.float64, device=device)
             v=v_current*0.2+v*0.8
-            print(f'dumping: {id}: altitude error: {altitude_error}, pitch error: {pitch_error}, roll error: {roll_error}')
+            print(f'{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: dumping: {id}: altitude error: {altitude_error}, pitch error: {pitch_error}, roll error: {roll_error}, timestep: {timestep}')
 
         height_desired += height_diff_desired * dt
 

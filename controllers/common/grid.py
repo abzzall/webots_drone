@@ -1,6 +1,7 @@
 import torch
+from datetime import datetime
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: Using device: {device}")
 GRID_SIZE = torch.tensor( 100, device=device)
 FLOOR_WIDTH = torch.tensor(835, device=device)
 FLOOR_DEPTH = torch.tensor(913, device=device)
