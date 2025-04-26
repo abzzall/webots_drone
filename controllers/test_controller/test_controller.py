@@ -36,8 +36,8 @@ import json
 # init_pool()
 FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
 
-ALTITUDE_THRESHOLD = torch.tensor(0.05, dtype=torch.float64, device=device)  # 10 cm threshold
-ANGULAR_THRESHOLD = torch.deg2rad(torch.tensor(30.0, dtype=torch.float64, device=device))
+ALTITUDE_THRESHOLD = torch.tensor(0.15, dtype=torch.float64, device=device)  # 10 cm threshold
+ANGULAR_THRESHOLD = torch.deg2rad(torch.tensor(20.0, dtype=torch.float64, device=device))
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
 dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
 
@@ -290,10 +290,11 @@ if __name__ == '__main__':
                 # db_logger.insert_d_velocity(dv_x=dv[0], dv_y=dv[1])
                 # db_logger.insert_fa(fa_x=fa[0], fa_y=fa[1])
                 # db_logger.insert_velocity(velocity_x=calculated_v[0], velocity_y=calculated_v[1])
-        elif pause:
-                v=torch.tensor([0,0], dtype=torch.float64, device=device)
         else:
-            v=v*0.9#dumping
+            if pause:
+
+                v=torch.tensor([0,0], dtype=torch.float64, device=device)
+            v=v_current*0.2+v*0.8
             print(f'dumping: {id}: altitude error: {altitude_error}, pitch error: {pitch_error}, roll error: {roll_error}')
 
         height_desired += height_diff_desired * dt

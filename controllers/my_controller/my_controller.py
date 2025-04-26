@@ -511,16 +511,19 @@ class CrazyflieSupervisor(Supervisor):
         self.emitter = self.getDevice("emitter")
         self.t = 0
         # pos = [random.uniform(-self.floor_width, self.floor_width), random.uniform(-self.floor_depth, self.floor_depth)]
-        self.keyboard.enable(int(self.getBasicTimeStep()))
+        # self.keyboard.enable(int(self.getBasicTimeStep()))
         delay=0
         self.timestep=int(self.getBasicTimeStep())
         self.quit=False
+        self.is_running = False
         while self.step(int(self.getBasicTimeStep())) != -1 and not self.quit:
             self.db_logger.next_step()
             self.t=self.t+1
             # self.process_key_press()
-            self.is_running=True
             delay += self.getBasicTimeStep()
+            if delay>30000 and not self.is_running and not self.quit:
+                self.is_running=True
+                continue
             detect_drones()
             if self.is_running and not self.is_paused:
                 self.save_drone_positions()

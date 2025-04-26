@@ -10,6 +10,11 @@ WorldInfo {
     "World generated using the Open Street Map to Webots importer"
     "Author: David Mansolino <david.mansolino@epfl.ch>"
   ]
+  sync  TRUE
+  realTime FALSE  # <- THIS is what you want!
+  maxFPS -1  # Unlimited FPS
+  basicTimeStep 32
+
 }
 Viewpoint {
   fieldOfView 1.5707963267948966
