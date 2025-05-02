@@ -4,9 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="timestep">
+    <list default="true" id="3c4dd751-83a1-4824-9f7f-86aa5009f38c" name="Changes" comment="nvmath dep deleted">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/common/grid.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/common/grid.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/my_controller/my_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/controllers/test_controller/test_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/map/.map_unloaded.wbproj" beforeDir="false" afterPath="$PROJECT_DIR$/map/.map_unloaded.wbproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -157,7 +161,15 @@
       <workItem from="1745572559731" duration="17707000" />
       <workItem from="1745600032478" duration="15000" />
       <workItem from="1745601648209" duration="3818000" />
-      <workItem from="1745651990688" duration="4752000" />
+      <workItem from="1745651990688" duration="5002000" />
+      <workItem from="1745687357392" duration="14009000" />
+      <workItem from="1745733616530" duration="12950000" />
+      <workItem from="1745762113017" duration="11382000" />
+      <workItem from="1745784596724" duration="1447000" />
+      <workItem from="1745816231020" duration="6518000" />
+      <workItem from="1745836079111" duration="6955000" />
+      <workItem from="1746092714972" duration="752000" />
+      <workItem from="1746180605671" duration="6602000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit">
       <option name="closed" value="true" />
@@ -255,7 +267,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745656476883</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="nvmath dep deleted">
+      <option name="closed" value="true" />
+      <created>1745657057047</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1745657057047</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -274,7 +294,8 @@
     <MESSAGE value="altitude error" />
     <MESSAGE value="autonomous start" />
     <MESSAGE value="timestep" />
-    <option name="LAST_COMMIT_MESSAGE" value="timestep" />
+    <MESSAGE value="nvmath dep deleted" />
+    <option name="LAST_COMMIT_MESSAGE" value="nvmath dep deleted" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/webots_drone$main.coverage" NAME="main Coverage Results" MODIFIED="1743764519272" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

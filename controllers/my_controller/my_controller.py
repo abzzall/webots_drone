@@ -28,8 +28,8 @@ from datetime import datetime
 # Global parameters
 PHEROMONE_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
 PRIORITY_MATRIX = torch.zeros((GRID_SIZE+2, GRID_SIZE+2), dtype=torch.float64, device=device)
-N=3#drone count
-DELAY=1000
+N= 1#drone count
+DELAY=500
 DRONE_POSITIONS_IN_GRID = torch.zeros((N, 2), dtype=torch.int, device=device)
 DRONE_POSITIONS=torch.zeros((N, 3), dtype=torch.float64, device=device)
 # To track previous drone positions
@@ -155,7 +155,7 @@ def detect_drones():
 #     mask = PHEROMONE_MATRIX < MAX_PHEROMONE
 #     PHEROMONE_MATRIX = PHEROMONE_MATRIX + noise * mask
 #     PHEROMONE_MATRIX = torch.clamp(PHEROMONE_MATRIX, 0, MAX_PHEROMONE)
-def update_pheromone_matrix(alpha=0.9):
+def update_pheromone_matrix(alpha=0.01):
     """
     Update pheromone matrix with scaling to one first, then applying MAX_PHEROMONE.
     Drone positions are always set directly to MAX_PHEROMONE.
@@ -184,6 +184,11 @@ def update_pheromone_matrix(alpha=0.9):
 
     # Then apply MAX_PHEROMONE after normalization
     new_pheromone_matrix = MAX_PHEROMONE * new_pheromone_matrix
+    noise_strength = 0.05  # Adjust the amount of randomness (e.g., 5% of MAX_PHEROMONE)
+    noise = noise_strength * MAX_PHEROMONE * (2 * torch.rand_like(new_pheromone_matrix) - 1)  # Noise ∈ [-X, +X]
+
+    new_pheromone_matrix += noise
+    new_pheromone_matrix = torch.clamp(new_pheromone_matrix, 0, MAX_PHEROMONE)
 
     # Smooth update
     PHEROMONE_MATRIX = alpha * PHEROMONE_MATRIX + (1 - alpha) * new_pheromone_matrix
@@ -222,7 +227,7 @@ def update_pheromone_matrix(alpha=0.9):
 #     for (row, col) in DRONE_POSITIONS_IN_GRID:
 #         PRIORITY_MATRIX[int(row), int(col)] = 0.0
 
-def update_priority_matrix(power=3.0):
+def update_priority_matrix(power=4.0):
     """
     Compute sharper inverse priority from pheromone using power-law inversion.
 
@@ -234,11 +239,11 @@ def update_priority_matrix(power=3.0):
     epsilon = 1e-8  # Prevent division by zero
 
     # Normalize pheromone matrix
-    norm_pheromone = PHEROMONE_MATRIX / (MAX_PHEROMONE + epsilon)
-    norm_pheromone = torch.clamp(norm_pheromone, epsilon, 1.0)
+    # norm_pheromone = PHEROMONE_MATRIX / (MAX_PHEROMONE + epsilon)
+    # norm_pheromone = torch.clamp(norm_pheromone, epsilon, 1.0)
 
     # Compute inverse with adjustable sharpness
-    inv_pheromone = (1.0 / norm_pheromone) ** power
+    inv_pheromone = (1.0 / PHEROMONE_MATRIX) ** power
 
     # Normalize result to [0, 1]
     max_value = torch.max(inv_pheromone)

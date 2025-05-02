@@ -1,7 +1,20 @@
 import torch
+import numpy as np
+import random
 from datetime import datetime
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: Using device: {device}")
+SEED = 4
+
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+
 GRID_SIZE = torch.tensor( 100, device=device)
 FLOOR_WIDTH = torch.tensor(835, device=device)
 FLOOR_DEPTH = torch.tensor(913, device=device)

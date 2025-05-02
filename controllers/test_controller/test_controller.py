@@ -39,7 +39,7 @@ FLYING_ATTITUDE = torch.tensor( 1,  dtype=torch.float64, device=device)
 ALTITUDE_THRESHOLD = torch.tensor(0.15, dtype=torch.float64, device=device)  # 10 cm threshold
 ANGULAR_THRESHOLD = torch.deg2rad(torch.tensor(20.0, dtype=torch.float64, device=device))
 V_MAX=torch.tensor( 1,  dtype=torch.float64, device=device)
-dV=torch.tensor(0.1,  dtype=torch.float64, device=device)
+dV=torch.tensor(0.01,  dtype=torch.float64, device=device)
 
 
 def angle_between_vectors(v1: torch.Tensor, v2: torch.Tensor):
